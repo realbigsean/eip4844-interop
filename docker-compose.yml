@@ -148,6 +148,13 @@ services:
     ports:
       - '7500:7500'
     volumes:
+      - 'beacon_node_follower_data:/chaindata'
+      - type: bind
+        source: ./shared/chain-config.yml
+        target: /config/chain-config.yml
+      - type: bind
+        source: ./lodestar/run_beacon_node.sh
+        target: /usr/local/bin/run_beacon_node.sh
       - type: bind
         source: ./shared/chain-config.yml
         target: /config/chain-config.yml
@@ -184,7 +191,7 @@ services:
       - type: bind
         source: ./lighthouse/run_beacon_node_peer.sh
         target: /usr/local/bin/run_beacon_node_peer.sh
-        
+
   lodestar-beacon-node:
     depends_on:
       - execution-node
