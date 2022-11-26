@@ -20,7 +20,7 @@ import (
 var consensusClientEnvironments = map[string]*TestEnvironment{
 	"prysm":    newPrysmTestEnvironment(),
 	"lodestar": newLodestarTestEnvironment(),
-	// "lighthouse": newLighthouseTestEnvironment(),
+	"lighthouse": newLighthouseTestEnvironment(),
 }
 
 // Stateful. InitE2ETest sets this.
@@ -153,6 +153,7 @@ type TestEnvironment struct {
 	ValidatorNode      Service
 	BeaconNodeFollower Service
 	GethNode2          Service
+	JsonSnooper        Service
 }
 
 func newPrysmTestEnvironment() *TestEnvironment {
@@ -165,6 +166,7 @@ func newPrysmTestEnvironment() *TestEnvironment {
 		GethChainConfig:    ReadGethChainConfig(),
 		GethNode:           NewGethNode(),
 		GethNode2:          NewGethNode2(),
+		JsonSnooper:        NewJsonSnooper(),
 	}
 }
 
@@ -177,6 +179,21 @@ func newLodestarTestEnvironment() *TestEnvironment {
 		GethChainConfig:    ReadGethChainConfig(),
 		GethNode:           NewGethNode(),
 		GethNode2:          NewGethNode2(),
+		JsonSnooper:        NewJsonSnooper(),
+	}
+}
+
+func newLighthouseTestEnvironment() *TestEnvironment {
+	clientName := "lighthouse"
+	return &TestEnvironment{
+		BeaconChainConfig:  ReadBeaconChainConfig(),
+		BeaconNode:         NewBeaconNode("prysm"),
+		BeaconNodeFollower: NewBeaconNodeFollower(clientName),
+		ValidatorNode:      NewValidatorNode("prysm"),
+		GethChainConfig:    ReadGethChainConfig(),
+		GethNode:           NewGethNode(),
+		GethNode2:          NewGethNode2(),
+		JsonSnooper:        NewJsonSnooper(),
 	}
 }
 
@@ -203,6 +220,12 @@ func (env *TestEnvironment) StartAll(ctx context.Context) error {
 	g.Go(func() error {
 		if env.GethNode2 != nil {
 			return env.GethNode2.Start(ctx)
+		}
+		return nil
+	})
+	g.Go(func() error {
+		if env.JsonSnooper != nil {
+			return env.JsonSnooper.Start(ctx)
 		}
 		return nil
 	})

@@ -25,10 +25,10 @@ HTTP_PORT=5052
 
 lighthouse \
 	beacon_node \
-	--debug-level $VERBOSITY \
+	--debug-level info \
 	--datadir /chaindata \
 	--purge-db \
-	--execution-endpoint "$EXECUTION_NODE_URL" \
+	--execution-endpoint "http://proxy:8551" \
 	--execution-jwt-secret-key 0x98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 \
 	--testnet-dir $TESTNET_DIR \
 	--port $NETWORK_PORT \
@@ -39,4 +39,5 @@ lighthouse \
 	--enr-udp-port $NETWORK_PORT \
 	--enr-tcp-port $NETWORK_PORT \
 	--subscribe-all-subnets \
+	--slots-per-restore-point 3 \
 	--disable-packet-filter $@

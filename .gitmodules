@@ -17,4 +17,4 @@
 [submodule "lighthouse/lighthouse"]
 	path = lighthouse/lighthouse
 	url = https://github.com/realbigsean/lighthouse
-	branch = eip4844-devnet-v3
+	branch = interop-4844

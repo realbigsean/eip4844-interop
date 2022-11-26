@@ -155,9 +155,6 @@ services:
       - type: bind
         source: ./lodestar/run_beacon_node.sh
         target: /usr/local/bin/run_beacon_node.sh
-      - type: bind
-        source: ./shared/chain-config.yml
-        target: /config/chain-config.yml
 
   lighthouse-beacon-node-follower:
     depends_on:
@@ -167,7 +164,7 @@ services:
       context: ./lighthouse
       dockerfile: Dockerfile.lighthouse
       args:
-        - FEATURES=spec-minimal
+        - FEATURES=withdrawals
     environment:
       BEACON_NODE_RPC: http://prysm-beacon-node:3500
       EXECUTION_NODE_URL: http://execution-node-3:8545
@@ -254,3 +251,12 @@ services:
       - '16686:16686'
       - '14268:14268'
       - '9411:9411'
+
+  proxy:
+    image: ethdreamer/json_rpc_snoop:latest
+    entrypoint: >
+      /bin/bash -c "
+        ./json_rpc_snoop -p 8551 -b 0.0.0.0 http://execution-node:8545
+      "
+    expose:
+      - 8551
