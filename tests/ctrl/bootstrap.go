@@ -174,8 +174,9 @@ func newLodestarTestEnvironment() *TestEnvironment {
 	clientName := "lodestar"
 	return &TestEnvironment{
 		BeaconChainConfig:  ReadBeaconChainConfig(),
-		BeaconNode:         NewBeaconNode(clientName),
+		BeaconNode:         NewBeaconNode("prysm"),
 		BeaconNodeFollower: NewBeaconNodeFollower(clientName),
+		ValidatorNode:      NewValidatorNode("prysm"),
 		GethChainConfig:    ReadGethChainConfig(),
 		GethNode:           NewGethNode(),
 		GethNode2:          NewGethNode2(),
@@ -224,10 +225,10 @@ func (env *TestEnvironment) StartAll(ctx context.Context) error {
 		return nil
 	})
 	g.Go(func() error {
-		if env.JsonSnooper != nil {
-			return env.JsonSnooper.Start(ctx)
-		}
-		return nil
-	})
+    	if env.JsonSnooper != nil {
+    		return env.JsonSnooper.Start(ctx)
+    	}
+    	return nil
+    })
 	return g.Wait()
 }
