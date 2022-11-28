@@ -8,7 +8,7 @@ set -exu -o pipefail
 # wait for the beacon node to start
 RETRIES=60
 i=0
-until curl --fail --silent "${BEACON_NODE_RPC}/eth/v1/node/health"; do
+until curl --fail --silent "${BEACON_NODE_RPC}/eth/v1/node/version"; do
     sleep 1
     if [ $i -eq $RETRIES ]; then
         echo "Timed out retrieving beacon node p2p addr"

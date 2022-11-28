@@ -59,6 +59,10 @@ func NewJsonSnooper() Service {
 	return newDockerService("proxy", shared.GethRPC)
 }
 
+func NewJsonSnooper2() Service {
+	return newDockerService("proxy-3", shared.GethRPC)
+}
+
 func GetExecutionClient(ctx context.Context) (*ethclient.Client, error) {
 	client, err := ethclient.DialContext(ctx, shared.GethRPC)
 	if err != nil {
