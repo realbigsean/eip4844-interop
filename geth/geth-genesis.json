@@ -19,7 +19,7 @@
       "epoch": 30000
     },
     "terminalTotalDifficulty": 2,
-    "terminalTotalDifficultyPassed": true
+    "terminalTotalDifficultyPassed": false
   },
   "nonce": "0x42",
   "timestamp": "0x0",

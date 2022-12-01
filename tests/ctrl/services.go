@@ -60,7 +60,7 @@ func NewJsonSnooper() Service {
 }
 
 func NewJsonSnooper2() Service {
-	return newDockerService("proxy-3", shared.GethRPC)
+	return newDockerService("proxy-2", shared.GethRPC)
 }
 
 func GetExecutionClient(ctx context.Context) (*ethclient.Client, error) {

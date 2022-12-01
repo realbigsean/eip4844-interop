@@ -41,14 +41,14 @@ fi
 # by default: flags for the bootnode
 # retrieve our public IP address for discovery
 EXTERNAL_IP=$(ip addr show eth0 | grep inet | awk '{ print $2 }' | cut -d '/' -f1)
-ADDITIONAL_FLAGS="--nodiscover --nodekeyhex ${BOOTNODE_KEY_HEX} --nat extip:${EXTERNAL_IP}"
+ADDITIONAL_FLAGS="--nodekeyhex ${BOOTNODE_KEY_HEX} --nat extip:${EXTERNAL_IP}"
 MINE=--mine
 
 if [ -n "$PEER" ]; then
     PEER_PUBKEY=$(bootnode -nodekeyhex "$BOOTNODE_KEY_HEX" -writeaddress)
     PEER_ENODE="enode://${PEER_PUBKEY}@${PEER}"
     echo "Configuring static node at ${PEER_ENODE}"
-    ADDITIONAL_FLAGS="--bootnodes ${PEER_ENODE}"
+    ADDITIONAL_FLAGS="--discovery.port 30305 --port 30305 --nat extip:${EXTERNAL_IP} --bootnodes ${PEER_ENODE}"
     MINE=
     # wait a bit for the peer to come online
     sleep 4
@@ -72,6 +72,7 @@ exec geth \
     --ws.api=debug,eth,txpool,net,engine \
     --maxpeers=2 ${ADDITIONAL_FLAGS} \
     --authrpc.jwtsecret=0x98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 \
+    --authrpc.vhosts='*' \
     --allow-insecure-unlock \
     --password "${GETH_DATA_DIR}/password" \
     --syncmode=full \

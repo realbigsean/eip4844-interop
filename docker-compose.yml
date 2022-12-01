@@ -16,8 +16,10 @@ services:
       dockerfile: Dockerfile.geth
     ports:
       - '8545:8545'
+      - '30303:30303'
+      - '30304:30303'
     environment:
-      GETH_VERBOSITY: 4
+      GETH_VERBOSITY: 5
     volumes:
       - 'geth_data:/db'
       - type: bind
@@ -32,28 +34,13 @@ services:
       dockerfile: Dockerfile.geth
     environment:
       PEER: execution-node:30303
-      GETH_VERBOSITY: 4
+      GETH_VERBOSITY: 5
     ports:
       - '8546:8545'
+      - '30305:30305'
+      - '30306:30304'
     volumes:
       - 'geth_data2:/db'
-      - type: bind
-        source: ./geth/geth-genesis.json
-        target: /genesis.json
-
-  execution-node-3:
-    depends_on:
-      - execution-node
-    build:
-      context: ./geth
-      dockerfile: Dockerfile.geth
-    environment:
-      PEER: execution-node:30303
-      GETH_VERBOSITY: 4
-    ports:
-      - "8547:8545"
-    volumes:
-      - "geth_data3:/db"
       - type: bind
         source: ./geth/geth-genesis.json
         target: /genesis.json
@@ -206,11 +193,7 @@ services:
   lighthouse-beacon-node:
     depends_on:
       - execution-node
-    build:
-      context: ./lighthouse
-      dockerfile: Dockerfile.lighthouse
-      args:
-        - FEATURES=withdrawals
+    image: seananderson33/lighthouse:eip4844
     environment:
       EXECUTION_NODE_URL: "http://proxy:8551"
       VERBOSITY: debug
@@ -237,16 +220,12 @@ services:
 
   lighthouse-beacon-node-follower:
     depends_on:
-      - execution-node-3
+      - execution-node-2
       - lighthouse-beacon-node
-    build:
-      context: ./lighthouse
-      dockerfile: Dockerfile.lighthouse
-      args:
-        - FEATURES=withdrawals
+    image: seananderson33/lighthouse:eip4844
     environment:
       BEACON_NODE_RPC: http://lighthouse-beacon-node:5052
-      EXECUTION_NODE_URL: "http://proxy-3:8552"
+      EXECUTION_NODE_URL: "http://proxy-2:8552"
       VERBOSITY: debug
       TESTNET_DIR: /config
       GENERATE_GENESIS: false
@@ -276,14 +255,9 @@ services:
     depends_on:
       - lighthouse-beacon-node-follower
       - lighthouse-beacon-node
-    build:
-      context: ./lighthouse
-      dockerfile: Dockerfile.lighthouse
-      args:
-        - FEATURES=withdrawals
+    image: seananderson33/lighthouse:eip4844
     command: >
       lighthouse 
-      	--debug-level debug 
       	vc 
       	--datadir /chaindata 
       	--testnet-dir /config 
@@ -320,13 +294,13 @@ services:
     expose:
       - 8551
 
-  proxy-3:
+  proxy-2:
     depends_on:
-      - execution-node-3
+      - execution-node-2
     image: ethdreamer/json_rpc_snoop:latest
     entrypoint: >
       /bin/bash -c "
-        ./json_rpc_snoop -p 8552 -b 0.0.0.0 http://execution-node-3:8545
+        ./json_rpc_snoop -p 8552 -b 0.0.0.0 http://execution-node-2:8545
       "
     expose:
       - 8552

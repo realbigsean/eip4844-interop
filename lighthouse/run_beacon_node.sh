@@ -49,7 +49,7 @@ HTTP_PORT=5052
 
 lighthouse \
 	beacon_node \
-	--debug-level trace \
+	--debug-level info \
 	--datadir "$DATADIR" \
 	--purge-db \
 	--execution-endpoint "$EXECUTION_NODE_URL"  \
@@ -64,6 +64,7 @@ lighthouse \
 	--enr-address $EXTERNAL_IP \
 	--enr-udp-port $NETWORK_PORT \
 	--enr-tcp-port $NETWORK_PORT \
+	--disable-enr-auto-update \
 	--subscribe-all-subnets \
 	--slots-per-restore-point 3 \
 	--trusted-setup-file $TESTNET_DIR/trusted_setup.txt \

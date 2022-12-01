@@ -10,7 +10,7 @@ devnet-up:
 lighthouse-up:
 	docker compose --project-name eip4844-interop up -d\
 		execution-node\
-		execution-node-3\
+		execution-node-2\
 		prysm-beacon-node\
 		prysm-validator-node\
 		lighthouse-beacon-node-follower
