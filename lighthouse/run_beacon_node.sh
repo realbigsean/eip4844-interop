@@ -4,30 +4,9 @@ set -exu -o pipefail
 
 : "${EXECUTION_NODE_URL:-}"
 : "${VERBOSITY:-info}"
-: "${GENERATE_GENESIS:-false}"
 
 DATADIR=/chaindata
 VALIDATOR_COUNT=4
-
-GENESIS_TIME=`date +%s`
-
-if [ "$GENERATE_GENESIS" == "true" ]; then
-  lcli \
-  	insecure-validators \
-  	--count $VALIDATOR_COUNT \
-  	--base-dir $DATADIR \
-
-  echo Validators generated with keystore passwords at $DATADIR.
-  echo "Building genesis state... (this might take a while)"
-
-  lcli \
-  	interop-genesis \
-  	--genesis-time $GENESIS_TIME \
-  	--spec mainnet \
-  	--testnet-dir $TESTNET_DIR \
-  	$VALIDATOR_COUNT
-fi
-
 
 # wait for the execution node to start
 RETRIES=60
@@ -53,8 +32,8 @@ lighthouse \
 	--datadir "$DATADIR" \
 	--purge-db \
 	--execution-endpoint "$EXECUTION_NODE_URL"  \
-	--execution-jwt-secret-key 0x98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 \
-	--testnet-dir $TESTNET_DIR \
+	--execution-jwt-secret $TESTNET_DIR/cl/jwtsecret \
+	--testnet-dir $TESTNET_DIR/custom_config_data \
 	--port $NETWORK_PORT \
 	--http \
 	--http-port $HTTP_PORT \

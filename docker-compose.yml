@@ -1,13 +1,27 @@
 version: '3.4'
 
 volumes:
+  config:
+  data:
   geth_data:
   geth_data2:
   beacon_node_data:
   beacon_node_follower_data:
 
 services:
+  genesis-generator:
+    image: ethpandaops/ethereum-genesis-generator:latest
+    entrypoint: ''
+    command: bash -c "/work/entrypoint.sh all && cd /data && /usr/local/bin/eth2-val-tools --source-min 0 --source-max $((NUMBER_OF_VALIDATORS - 1)) --mnemonic \"$EL_AND_CL_MNEMONIC\" "
+    ports:
+      - '8000:8000'
+    volumes:
+      - 'data:/data'
+      - 'config:/config'
+
   execution-node:
+    depends_on:
+      - genesis-generator
     build:
       context: ./geth
       dockerfile: Dockerfile.geth
@@ -18,11 +32,12 @@ services:
     volumes:
       - 'geth_data:/db'
       - type: bind
-        source: ./geth/geth-genesis.json
+        source: ./data/custom_config_data/genesis.json
         target: /genesis.json
 
   execution-node-2:
     depends_on:
+      - genesis-generator
       - execution-node
     build:
       context: ./geth
@@ -35,11 +50,12 @@ services:
     volumes:
       - 'geth_data2:/db'
       - type: bind
-        source: ./geth/geth-genesis.json
+        source: ./data/custom_config_data/genesis.json
         target: /genesis.json
 
   prysm-beacon-node:
     depends_on:
+      - genesis-generator
       - execution-node
       - jaeger-tracing
     build:
@@ -71,6 +87,7 @@ services:
 
   prysm-beacon-node-follower:
     depends_on:
+      - genesis-generator
       - execution-node-2
       - prysm-beacon-node
       - jaeger-tracing
@@ -106,6 +123,7 @@ services:
 
   prysm-validator-node:
     depends_on:
+      - genesis-generator
       - prysm-beacon-node
       - jaeger-tracing
     build:
@@ -135,6 +153,7 @@ services:
 
   lodestar-beacon-node:
     depends_on:
+      - genesis-generator
       - execution-node
     build:
       context: ./lodestar
@@ -157,6 +176,7 @@ services:
 
   lodestar-beacon-node-follower:
     depends_on:
+      - genesis-generator
       - execution-node-2
       - lodestar-beacon-node
     build:
@@ -185,17 +205,16 @@ services:
 
   lighthouse-beacon-node:
     depends_on:
+      - genesis-generator
       - execution-node
     build:
       context: ./lighthouse
       dockerfile: Dockerfile.lighthouse
     image: lighthouse-interop
-    pull_policy: never
     environment:
       EXECUTION_NODE_URL: "http://execution-node:8545"
       VERBOSITY: debug
-      TESTNET_DIR: /config
-      GENERATE_GENESIS: "true"
+      TESTNET_DIR: /data
     entrypoint: ["run_beacon_node.sh"]
     ports:
       - "5052:5052"
@@ -203,30 +222,20 @@ services:
     volumes:
       - "beacon_node_data:/chaindata"
       - type: bind
-        source: ./shared/chain-config.yml
-        target: /config/config.yaml
-      - type: bind
-        source: ./lighthouse/deploy_block.txt
-        target: /config/deploy_block.txt
-      - type: bind
-        source: ./lighthouse/run_beacon_node.sh
-        target: /usr/local/bin/run_beacon_node.sh
-      - type: bind
-        source: ./shared/trusted_setup.txt
-        target: /config/trusted_setup.txt
+        source: ./data
+        target: /data
 
   lighthouse-beacon-node-follower:
     image: lighthouse-interop
-    pull_policy: never
     depends_on:
+      - genesis-generator
       - execution-node-2
       - lighthouse-beacon-node
     environment:
       BEACON_NODE_RPC: http://lighthouse-beacon-node:5052
       EXECUTION_NODE_URL: "http://execution-node-2:8545"
       VERBOSITY: debug
-      TESTNET_DIR: /config
-      GENERATE_GENESIS: "false"
+      TESTNET_DIR: /data
     entrypoint: ["run_beacon_node_peer.sh"]
     ports:
       - "5053:5052"
@@ -234,43 +243,27 @@ services:
     volumes:
       - "beacon_node_follower_data:/chaindata"
       - type: bind
-        source: ./shared/chain-config.yml
-        target: /config/config.yaml
-      - type: bind
-        source: ./lighthouse/deploy_block.txt
-        target: /config/deploy_block.txt
-      - type: bind
-        source: ./lighthouse/run_beacon_node.sh
-        target: /usr/local/bin/run_beacon_node.sh
-      - type: bind
-        source: ./lighthouse/run_beacon_node_peer.sh
-        target: /usr/local/bin/run_beacon_node_peer.sh
-      - type: bind
-        source: ./shared/trusted_setup.txt
-        target: /config/trusted_setup.txt
+        source: ./data
+        target: /data
 
   lighthouse-validator-node:
     image: lighthouse-interop
-    pull_policy: never
     depends_on:
+      - genesis-generator
       - lighthouse-beacon-node-follower
       - lighthouse-beacon-node
     command: >
       lighthouse 
       	vc 
-      	--datadir /chaindata 
-      	--testnet-dir /config 
+      	--datadir /data
+      	--testnet-dir /data 
       	--init-slashing-protection 
       	--beacon-nodes http://lighthouse-beacon-node:5052
         --suggested-fee-recipient 0x690B9A9E9aa1C9dB991C7721a92d351Db4FaC990
     volumes:
-      - "beacon_node_data:/chaindata"
       - type: bind
-        source: ./shared/chain-config.yml
-        target: /config/config.yaml
-      - type: bind
-        source: ./lighthouse/deploy_block.txt
-        target: /config/deploy_block.txt
+        source: ./data
+        target: /data
 
   jaeger-tracing:
     image: jaegertracing/all-in-one:1.35
