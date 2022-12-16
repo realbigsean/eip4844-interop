@@ -9,6 +9,7 @@ devnet-up:
 
 lighthouse-up:
 	docker compose --project-name eip4844-interop up -d\
+		genesis-generator\
 		execution-node\
 		execution-node-2\
 		lighthouse-beacon-node\

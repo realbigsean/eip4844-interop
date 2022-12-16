@@ -2,6 +2,20 @@
 
 set -exu -o pipefail
 
+# wait for the genesis service to start
+RETRIES=60
+i=0
+until curl --silent --fail "genesis-generator:8000";
+do
+    sleep 1
+    if [ $i -eq $RETRIES ]; then
+        echo 'Timed out waiting for genesis generator'
+        exit 1
+    fi
+    echo 'Waiting for genesis generator...'
+    ((i=i+1))
+done
+
 VERBOSITY=${GETH_VERBOSITY:-4}
 GETH_DATA_DIR=/db
 GETH_KEYSTORE_DIR="$GETH_DATA_DIR/keystore"
@@ -71,7 +85,7 @@ exec geth \
     --ws.origins="*" \
     --ws.api=debug,eth,txpool,net,engine \
     --maxpeers=2 ${ADDITIONAL_FLAGS} \
-    --authrpc.jwtsecret=0x98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 \
+    --authrpc.jwtsecret=/data/el/jwtsecret \
     --allow-insecure-unlock \
     --password "${GETH_DATA_DIR}/password" \
     --syncmode=full \

@@ -8,17 +8,17 @@ set -exu -o pipefail
 DATADIR=/chaindata
 VALIDATOR_COUNT=4
 
-# wait for the execution node to start
+# wait for the genesis service to start
 RETRIES=60
 i=0
-until curl --silent --fail "$EXECUTION_NODE_URL";
+until curl --silent --fail "genesis-generator:8000";
 do
     sleep 1
     if [ $i -eq $RETRIES ]; then
-        echo 'Timed out waiting for execution node'
+        echo 'Timed out waiting for genesis generator'
         exit 1
     fi
-    echo 'Waiting for execution node...'
+    echo 'Waiting for genesis generator...'
     ((i=i+1))
 done
 
@@ -32,7 +32,7 @@ lighthouse \
 	--datadir "$DATADIR" \
 	--purge-db \
 	--execution-endpoint "$EXECUTION_NODE_URL"  \
-	--execution-jwt-secret $TESTNET_DIR/cl/jwtsecret \
+	--execution-jwt $TESTNET_DIR/cl/jwtsecret \
 	--testnet-dir $TESTNET_DIR/custom_config_data \
 	--port $NETWORK_PORT \
 	--http \

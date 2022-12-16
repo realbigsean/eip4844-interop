@@ -17,6 +17,10 @@ type Service interface {
 	Started() <-chan struct{}
 }
 
+func NewGenesisService() Service {
+	return newDockerService("genesis-generator", "http://genesis-generator:8000")
+}
+
 func NewBeaconNode(clientName string) Service {
 	url := fmt.Sprintf("http://%s/eth/v1/beacon/genesis", shared.BeaconAPI)
 	return newDockerService(fmt.Sprintf("%s-beacon-node", clientName), url)

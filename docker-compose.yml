@@ -12,7 +12,9 @@ services:
   genesis-generator:
     image: ethpandaops/ethereum-genesis-generator:latest
     entrypoint: ''
-    command: bash -c "/work/entrypoint.sh all && cd /data && /usr/local/bin/eth2-val-tools --source-min 0 --source-max $((NUMBER_OF_VALIDATORS - 1)) --mnemonic \"$EL_AND_CL_MNEMONIC\" "
+    env_file:
+      - ./config/values.env
+    command: bash -c 'cd /data && /usr/local/bin/eth2-val-tools keystores --source-min 0 --source-max $(($$NUMBER_OF_VALIDATORS - 1)) --source-mnemonic "$$EL_AND_CL_MNEMONIC" && /work/entrypoint.sh all'
     ports:
       - '8000:8000'
     volumes:
@@ -28,12 +30,11 @@ services:
     ports:
       - '8545:8545'
     environment:
+      GENESIS_FILE_PATH: /data/custom_config_data/genesis.json
       GETH_VERBOSITY: 4
     volumes:
       - 'geth_data:/db'
-      - type: bind
-        source: ./data/custom_config_data/genesis.json
-        target: /genesis.json
+      - 'data:/data'
 
   execution-node-2:
     depends_on:
@@ -43,15 +44,14 @@ services:
       context: ./geth
       dockerfile: Dockerfile.geth
     environment:
+      GENESIS_FILE_PATH: /data/custom_config_data/genesis.json
       PEER: execution-node:30303
       GETH_VERBOSITY: 4
     ports:
       - '8546:8545'
     volumes:
       - 'geth_data2:/db'
-      - type: bind
-        source: ./data/custom_config_data/genesis.json
-        target: /genesis.json
+      - 'data:/data'
 
   prysm-beacon-node:
     depends_on:
@@ -213,7 +213,7 @@ services:
     image: lighthouse-interop
     environment:
       EXECUTION_NODE_URL: "http://execution-node:8545"
-      VERBOSITY: debug
+      VERBOSITY: trace
       TESTNET_DIR: /data
     entrypoint: ["run_beacon_node.sh"]
     ports:
@@ -221,9 +221,13 @@ services:
       - "9000:9000"
     volumes:
       - "beacon_node_data:/chaindata"
+      - 'data:/data'
       - type: bind
-        source: ./data
-        target: /data
+        source: ./lighthouse/run_beacon_node.sh
+        target: /usr/local/bin/run_beacon_node.sh
+      - type: bind
+        source: ./data/trusted_setup.txt
+        target: /data/trusted_setup.txt
 
   lighthouse-beacon-node-follower:
     image: lighthouse-interop
@@ -242,9 +246,13 @@ services:
       - "9001:9000"
     volumes:
       - "beacon_node_follower_data:/chaindata"
+      - 'data:/data'
       - type: bind
-        source: ./data
-        target: /data
+        source: ./lighthouse/run_beacon_node_peer.sh
+        target: /usr/local/bin/run_beacon_node_peer.sh
+      - type: bind
+        source: ./data/trusted_setup.txt
+        target: /data/trusted_setup.txt
 
   lighthouse-validator-node:
     image: lighthouse-interop
@@ -252,18 +260,12 @@ services:
       - genesis-generator
       - lighthouse-beacon-node-follower
       - lighthouse-beacon-node
-    command: >
-      lighthouse 
-      	vc 
-      	--datadir /data
-      	--testnet-dir /data 
-      	--init-slashing-protection 
-      	--beacon-nodes http://lighthouse-beacon-node:5052
-        --suggested-fee-recipient 0x690B9A9E9aa1C9dB991C7721a92d351Db4FaC990
+    entrypoint: ["run_validator_node.sh"]
     volumes:
+      - 'data:/data'
       - type: bind
-        source: ./data
-        target: /data
+        source: ./lighthouse/run_validator_node.sh
+        target: /usr/local/bin/run_validator_node.sh
 
   jaeger-tracing:
     image: jaegertracing/all-in-one:1.35

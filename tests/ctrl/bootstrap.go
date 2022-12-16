@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"time"
+	"net/http"
 
 	"github.com/Inphi/eip4844-interop/shared"
 	"github.com/Inphi/eip4844-interop/tests/util"
@@ -30,7 +31,7 @@ func GetEnv() *TestEnvironment {
 	return consensusClientEnvironments[client]
 }
 
-func InitEnvForClient(clientName string) *TestEnvironment {
+func InitEnvForClient(ctx context.Context, clientName string) *TestEnvironment {
 	client = clientName
 	return consensusClientEnvironments[clientName]
 }
@@ -40,14 +41,14 @@ func InitE2ETest(clientName string) {
 	if err := StopDevnet(); err != nil {
 		log.Fatalf("unable to stop devnet: %v", err)
 	}
-	InitEnvForClient(clientName).StartAll(ctx)
+	InitEnvForClient(clientName, ctx).StartAll(ctx)
 }
 
 func WaitForShardingFork() {
 	ctx := context.Background()
 
 	config := GetEnv().GethChainConfig
-	eip4844ForkBlock := config.ShardingForkBlock.Uint64()
+	eip4844ForkBlock := *config.ShardingForkTime
 
 	stallTimeout := 60 * time.Minute
 
@@ -79,7 +80,23 @@ func WaitForShardingFork() {
 	}
 }
 
-func ReadGethChainConfig() *params.ChainConfig {
+func ReadGethChainConfig(ctx context.Context) *params.ChainConfig {
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://genesis-generator:8000", nil)
+	if err != nil {
+		return err
+	}
+	// loop until the status request returns successfully
+	for {
+		if _, err := http.DefaultClient.Do(req); err == nil {
+			close(s.started)
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(1 * time.Second):
+		}
+	}
 	path := shared.GethChainConfigFilepath()
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -92,7 +109,23 @@ func ReadGethChainConfig() *params.ChainConfig {
 	return genesis.Config
 }
 
-func ReadBeaconChainConfig() *BeaconChainConfig {
+func ReadBeaconChainConfig(ctx context.Context) *BeaconChainConfig {
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://genesis-generator:8000", nil)
+	if err != nil {
+		return err
+	}
+	// loop until the status request returns successfully
+	for {
+		if _, err := http.DefaultClient.Do(req); err == nil {
+			close(s.started)
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(1 * time.Second):
+		}
+	}
 	path := shared.BeaconChainConfigFilepath()
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -148,6 +181,7 @@ type BeaconChainConfig struct {
 type TestEnvironment struct {
 	GethChainConfig    *params.ChainConfig
 	BeaconChainConfig  *BeaconChainConfig
+	GenesisService     Service
 	BeaconNode         Service
 	GethNode           Service
 	ValidatorNode      Service
@@ -159,6 +193,7 @@ func newPrysmTestEnvironment() *TestEnvironment {
 	clientName := "prysm"
 	return &TestEnvironment{
 		BeaconChainConfig:  ReadBeaconChainConfig(),
+		GenesisService:     NewGenesisService(),
 		BeaconNode:         NewBeaconNode(clientName),
 		BeaconNodeFollower: NewBeaconNodeFollower(clientName),
 		ValidatorNode:      NewValidatorNode(clientName),
@@ -172,6 +207,7 @@ func newLodestarTestEnvironment() *TestEnvironment {
 	clientName := "lodestar"
 	return &TestEnvironment{
 		BeaconChainConfig:  ReadBeaconChainConfig(),
+		GenesisService:     NewGenesisService(),
 		BeaconNode:         NewBeaconNode(clientName),
 		BeaconNodeFollower: NewBeaconNodeFollower(clientName),
 		GethChainConfig:    ReadGethChainConfig(),
@@ -184,6 +220,7 @@ func newLighthouseTestEnvironment() *TestEnvironment {
 	clientName := "lighthouse"
 	return &TestEnvironment{
 		BeaconChainConfig:  ReadBeaconChainConfig(),
+		GenesisService:     NewGenesisService(),
 		BeaconNode:         NewBeaconNode(clientName),
 		BeaconNodeFollower: NewBeaconNodeFollower(clientName),
 		ValidatorNode:      NewValidatorNode(clientName),
@@ -195,6 +232,9 @@ func newLighthouseTestEnvironment() *TestEnvironment {
 
 func (env *TestEnvironment) StartAll(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		return env.GenesisService.Start(ctx)
+	})
 	g.Go(func() error {
 		return env.BeaconNode.Start(ctx)
 	})
