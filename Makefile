@@ -17,7 +17,7 @@ lighthouse-up:
 		lighthouse-validator-node
 
 lodestar-up:
-	docker compose --project-name eip4844-interop up -d\
+	docker compose --project-name eip4844-interop up -d --build\
 		execution-node\
 		execution-node-2\
 		lodestar-beacon-node\

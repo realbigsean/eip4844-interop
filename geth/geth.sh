@@ -86,6 +86,7 @@ exec geth \
     --ws.api=debug,eth,txpool,net,engine \
     --maxpeers=2 ${ADDITIONAL_FLAGS} \
     --authrpc.jwtsecret=/data/el/jwtsecret \
+    --authrpc.addr=0.0.0.0\
     --allow-insecure-unlock \
     --password "${GETH_DATA_DIR}/password" \
     --syncmode=full \

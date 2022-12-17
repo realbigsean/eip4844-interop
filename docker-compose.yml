@@ -20,6 +20,9 @@ services:
     volumes:
       - 'data:/data'
       - 'config:/config'
+      - type: bind
+        source: ./config/values.env
+        target: /config/values.env
 
   execution-node:
     depends_on:
@@ -212,7 +215,7 @@ services:
       dockerfile: Dockerfile.lighthouse
     image: lighthouse-interop
     environment:
-      EXECUTION_NODE_URL: "http://execution-node:8545"
+      EXECUTION_NODE_URL: "http://execution-node:8551"
       VERBOSITY: trace
       TESTNET_DIR: /data
     entrypoint: ["run_beacon_node.sh"]
@@ -237,7 +240,7 @@ services:
       - lighthouse-beacon-node
     environment:
       BEACON_NODE_RPC: http://lighthouse-beacon-node:5052
-      EXECUTION_NODE_URL: "http://execution-node-2:8545"
+      EXECUTION_NODE_URL: "http://execution-node-2:8551"
       VERBOSITY: debug
       TESTNET_DIR: /data
     entrypoint: ["run_beacon_node_peer.sh"]
